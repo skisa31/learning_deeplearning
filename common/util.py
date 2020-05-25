@@ -44,11 +44,13 @@ def create_co_matrix(corpus, vocab_size, window_size=1):
 
     return co_matrix
 
+# コサイン類似度の算出
 def cos_similarity(x, y, eps=1e-8):
 	nx = x / np.sqrt(np.sum(x**2) + eps)
 	ny = y / np.sqrt(np.sum(y**2) + eps)
 	return np.dot(nx, ny)
 
+# 類似単語の検索
 def most_similarity(query, word_to_id, id_to_word, word_matrix, top=5):
     # 1-クエリを取り出す
     if query not in word_to_id:
@@ -92,3 +94,33 @@ def ppmi(C, verbose=False, eps=1e-8):
                 if cnt % (total // 100) == 0:
                     print('%.1f%% done' % (100*cnt/total))
     return M
+
+def create_context_target(corpus, window_size=1):
+    target = corpus[window_size:-window_size]
+    contexts = []
+
+    for idx in range(window_size, len(corpus) - window_size):
+        cs = []
+        for t in range(-window_size, window_size + 1):
+            if t == 0:
+                continue
+        cs.append(corpus[idx + t])
+    return np.array(contexts), np.array(target)
+
+# one-hotベクトルへの変換
+def convert_one_hot(corpus, vocab_size):
+    N = corpus.shape[0]
+
+    if corpus.ndim == 1:
+        one_hot = np.zeros((N, vocab_size), dtype=np.int32)
+        for idx, word_id in enumerate(corpus):
+            one_hot[idx, word_id] = 1
+
+    elif corpus.ndim == 2:
+        C = corpus.shape[1]
+        one_hot = np.zeros([N, C, vocab_size], dtype=np.int32)
+        for idx_0, word_ids in enumerate(corpus):
+            for idx_1, word_id in enumerate(word_ids):
+                one_hot[idx_0, idx_1, word_id] = 1
+
+    return one_hot
