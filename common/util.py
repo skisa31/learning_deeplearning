@@ -104,7 +104,8 @@ def create_context_target(corpus, window_size=1):
         for t in range(-window_size, window_size + 1):
             if t == 0:
                 continue
-        cs.append(corpus[idx + t])
+            cs.append(corpus[idx + t])
+        contexts.append(cs)
     return np.array(contexts), np.array(target)
 
 # one-hotベクトルへの変換
@@ -124,3 +125,26 @@ def convert_one_hot(corpus, vocab_size):
                 one_hot[idx_0, idx_1, word_id] = 1
 
     return one_hot
+
+def clip_grads(grads, max_norm):
+    total_norm = 0
+    for grad in grads:
+        total_norm += np.sum(grad ** 2)
+    total_norm = np.sqrt(total_norm)
+
+    rate = max_norm / (total_norm + 1e-6)
+    if rate < 1:
+        for grad in grads:
+            grad *= rate
+
+def to_cpu(x):
+    import numpy
+    if type(x) == numpy.ndarray:
+        return x
+    return np.asnumpy(x)
+
+def to_gpu(x):
+    import cupy
+    if type(x) == cupy.ndarray:
+        return x
+    return cupy.asarray(x)
