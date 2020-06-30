@@ -2,7 +2,7 @@ import sys
 sys.path.append('.')
 import numpy as np
 from common import config
-# GPUで実行する場合はしてのコメントアウトを消去
+# GPUで実行する場合は下のコメントアウトを消去
 # config.GPU = True
 
 import pickle
@@ -40,10 +40,10 @@ word_vecs = model.word_vecs
 
 if config.GPU:
   word_vecs = to_cpu(word_vecs)
-  params = {}
-  params['word_vecs'] = word_vecs.astype(np.float16)
-  params['word_to_id'] = word_to_id
-  params['id_to_word'] = id_to_word
-  pkl_file = 'cbow_param.pkl'
-  with open(pkl_file, 'wb') as f:
-    pickle.dump(params, f, -1)
+params = {}
+params['word_vecs'] = word_vecs.astype(np.float16)
+params['word_to_id'] = word_to_id
+params['id_to_word'] = id_to_word
+pkl_file = 'cbow_param.pkl'
+with open(pkl_file, 'wb') as f:
+  pickle.dump(params, f, -1)

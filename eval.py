@@ -3,7 +3,7 @@ sys.path.append('.')
 from common.util import most_similarity
 import pickle
 
-pkl_file = 'cbow_params.pkl'
+pkl_file = 'cbow_param.pkl'
 
 with open(pkl_file, 'rb') as f:
   params = pickle.load(f)
@@ -13,4 +13,4 @@ with open(pkl_file, 'rb') as f:
 
 querys = ['you', 'year', 'car', 'toyota']
 for query in querys:
-  most_similarity(query, word_to_id, id_to_word, top=5)
+  most_similarity(query, word_to_id, id_to_word, word_vecs, top=5)
