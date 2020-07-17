@@ -108,7 +108,7 @@ class RnnlmTrainer:
         # 共有された重みを１つに集約
         params, grads = remove_duplicate(model.params, model.grads)
         if max_grad is not None:
-          clip_grads(gradsm, max_grad)
+          clip_grads(grads, max_grad)
         optimizer.update(params, grads)
         total_loss += loss
         loss_count += 1
