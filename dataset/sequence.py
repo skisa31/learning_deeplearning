@@ -24,26 +24,26 @@ def load_data(file_name='additoin.txt', seed=1984):
         print('No file: %s' % file_name)
         return None
 
-    questions, answer = [], []
+    questions, answers = [], []
 
     for line in open(file_path, 'r'):
         idx = line.find('_')
         questions.append(line[:idx])
-        answer.append(line[idx:-1])
+        answers.append(line[idx:-1])
 
     # create vocab list
     for i in range(len(questions)):
-        q, a = questions[i], answer[i]
+        q, a = questions[i], answers[i]
         _update_vocab(q)
         _update_vocab(a)
 
     # create numpy array
     x = numpy.zeros((len(questions), len(questions[0])), dtype=numpy.int)
-    t = numpy.zeros((len(questions), len(answer[0])), dtype=numpy.int)
+    t = numpy.zeros((len(questions), len(answers[0])), dtype=numpy.int)
 
     for i, sentence in enumerate(questions):
         x[i] = [char_to_id[c] for c in list(sentence)]
-    for i, sentence in enumerate(answer):
+    for i, sentence in enumerate(answers):
         t[i] = [char_to_id[c] for c in list(sentence)]
 
     # shuffle
@@ -59,7 +59,7 @@ def load_data(file_name='additoin.txt', seed=1984):
     (x_train, x_test) = x[:split_at], x[split_at:]
     (t_train, t_test) = t[:split_at], t[split_at:]
 
-    return (x_train, x_test), (x_train, x_test)
+    return (x_train, t_train), (x_test, t_test)
 
 
 def get_vocab():

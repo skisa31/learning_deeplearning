@@ -1,13 +1,13 @@
+from common.np import *
+import os
 import sys
 sys.path.append('.')
-import os
-from common.np import *
 
 
 def preprocess(text):
     text = text.lower()
-    text = text.replace(".", " .") # .の前に半角を挿入
-    words = text.split(" ") # 半角スペースにより単語を分割
+    text = text.replace(".", " .")  # .の前に半角を挿入
+    words = text.split(" ")  # 半角スペースにより単語を分割
 
     word_to_id = {}
     id_to_word = {}
@@ -22,11 +22,13 @@ def preprocess(text):
 
     return corpus, word_to_id, id_to_word
 
+
 """
 text = 'This is a sample text for this fanction.'
 corpus, word_to_id, id_to_word = preprocess(text)
 print(corpus)
 """
+
 
 def create_co_matrix(corpus, vocab_size, window_size=1):
     corpus_size = len(corpus)
@@ -48,12 +50,16 @@ def create_co_matrix(corpus, vocab_size, window_size=1):
     return co_matrix
 
 # コサイン類似度の算出
+
+
 def cos_similarity(x, y, eps=1e-8):
-	nx = x / np.sqrt(np.sum(x**2) + eps)
-	ny = y / np.sqrt(np.sum(y**2) + eps)
-	return np.dot(nx, ny)
+    nx = x / np.sqrt(np.sum(x**2) + eps)
+    ny = y / np.sqrt(np.sum(y**2) + eps)
+    return np.dot(nx, ny)
 
 # 類似単語の検索
+
+
 def most_similarity(query, word_to_id, id_to_word, word_matrix, top=5):
     # 1-クエリを取り出す
     if query not in word_to_id:
@@ -80,6 +86,7 @@ def most_similarity(query, word_to_id, id_to_word, word_matrix, top=5):
         if count >= top:
             return
 
+
 def ppmi(C, verbose=False, eps=1e-8):
     M = np.zeros_like(C, dtype=np.float32)
     N = np.sum(C)
@@ -98,6 +105,7 @@ def ppmi(C, verbose=False, eps=1e-8):
                     print('%.1f%% done' % (100*cnt/total))
     return M
 
+
 def create_context_target(corpus, window_size=1):
     target = corpus[window_size:-window_size]
     contexts = []
@@ -112,6 +120,8 @@ def create_context_target(corpus, window_size=1):
     return np.array(contexts), np.array(target)
 
 # one-hotベクトルへの変換
+
+
 def convert_one_hot(corpus, vocab_size):
     N = corpus.shape[0]
 
@@ -129,6 +139,7 @@ def convert_one_hot(corpus, vocab_size):
 
     return one_hot
 
+
 def clip_grads(grads, max_norm):
     total_norm = 0
     for grad in grads:
@@ -139,6 +150,7 @@ def clip_grads(grads, max_norm):
     if rate < 1:
         for grad in grads:
             grad *= rate
+
 
 def to_cpu(x):
     import numpy
@@ -146,11 +158,13 @@ def to_cpu(x):
         return x
     return np.asnumpy(x)
 
+
 def to_gpu(x):
     import cupy
     if type(x) == cupy.ndarray:
         return x
     return cupy.asarray(x)
+
 
 def clip_grads(grads, max_norm):
     total_norm = 0
@@ -162,6 +176,7 @@ def clip_grads(grads, max_norm):
     if rate < 1:
         for grad in grads:
             grad *= rate
+
 
 def eval_perplexity(model, corpus, batch_size=10, time_size=35):
     print('evaluating perplexity ... ')
@@ -192,3 +207,40 @@ def eval_perplexity(model, corpus, batch_size=10, time_size=35):
     print('')
     ppl = np.exp(total_loss / max_iters)
     return ppl
+
+
+def eval_seq2seq(model, question, correct, id_to_char, verbos=False, is_reverse=False):
+    correct = correct.flatten()
+    # 頭の区切り文字
+    start_id = correct[0]
+    correct = correct[1:]
+    guess = model.generate(question, start_id, len(correct))
+
+    # 文字列へ変換
+    question = ''.join([id_to_char[int(c)] for c in question.flatten()])
+    correct = ''.join([id_to_char[int(c)] for c in correct])
+    guess = ''.join([id_to_char[int(c)] for c in guess])
+
+    if verbos:
+        if is_reverse:
+            question = question[::-1]
+
+        colors = {'ok': '\033[92m', 'fail': '\033[91m', 'close': '\033[0m'}
+        print('Q', question)
+        print('T', correct)
+
+        is_windows = os.name == 'nt'
+
+        if correct == guess:
+            mark = colors['ok'] + '☑' + colors['close']
+            if is_windows:
+                mark = 'O'
+            print(mark + ' ' + guess)
+        else:
+            mark = colors['fail'] + '☒' + colors['close']
+            if is_windows:
+                mark = "X"
+            print(mark + ' ' + guess)
+        print('---')
+
+    return 1 if guess == correct else 0
