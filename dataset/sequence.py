@@ -1,7 +1,7 @@
 import numpy
 import os
 import sys
-sys.path.append('..')
+sys.path.append('.')
 
 id_to_char = {}
 char_to_id = {}

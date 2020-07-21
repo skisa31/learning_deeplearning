@@ -1,49 +1,55 @@
-import sys
-sys.path.append('.')
-import numpy as np
-from common import config
-# GPUで実行する場合は下のコメントアウトを消去
-# config.GPU = True
-
-import pickle
+from peeky_seq2seq import PeekySeq2seq
+from seq2seq import Seq2seq
+from attention_seq2seq import AttentionSeq2seq
+from common.util import eval_seq2seq
 from common.trainer import Trainer
 from common.optimizer import Adam
-from cbow import CBOW
-from common.util import create_context_target, to_cpu, to_gpu
-from dataset import ptb
+from dataset import sequence
+import numpy as np
+import sys
+sys.path.append(".")
 
-#ハイパーパラメータの設定
-window_size = 5
-hidden_size = 100
-batch_size = 100
+# データの読み込み
+(x_train, t_train), (x_test, t_test) = sequence.load_data('date.txt')
+char_to_id, id_to_char = sequence.get_vocab()
+
+# 入力文を反転
+x_train, x_test = x_train[:, ::-1], x_test[:, ::-1]
+
+# ハイパーパラメータの設定
+vocab_size = len(char_to_id)
+wordvec_size = 16
+hidden_size = 256
+batch_size = 128
 max_epoch = 10
+max_grad = 5.0
 
-#データの読み込み
-corpus, word_to_id, id_to_word = ptb.load_data('train')
-vocab_size = len(word_to_id)
-
-contexts, target = create_context_target(corpus, window_size)
-if config.GPU:
-  contexts, target = to_gpu(contexts), to_cpu(target)
-
-#モデルなどの生成
-model = CBOW(vocab_size, hidden_size, window_size, corpus)
+model = AttentionSeq2seq(vocab_size, wordvec_size, hidden_size)
 optimizer = Adam()
 trainer = Trainer(model, optimizer)
 
-#学習開始
-trainer.fit(contexts, target, max_epoch, batch_size)
-trainer.plot()
+acc_list = []
+for epoch in range(max_epoch):
+    trainer.fit(x_train, t_train, max_epoch=1,
+                batch_size=batch_size, max_grad=max_grad)
 
-#後で利用できるように必要なデータを保存
-word_vecs = model.word_vecs
+    correct_num = 0
+    for i in range(len(x_test)):
+        question, correct = x_test[[i]], t_test[[i]]
+        verbose = i < 10
+        correct_num += eval_seq2seq(model, question,
+                                    correct, id_to_char, verbose, is_reverse=True)
 
-if config.GPU:
-  word_vecs = to_cpu(word_vecs)
-params = {}
-params['word_vecs'] = word_vecs.astype(np.float16)
-params['word_to_id'] = word_to_id
-params['id_to_word'] = id_to_word
-pkl_file = 'cbow_param.pkl'
-with open(pkl_file, 'wb') as f:
-  pickle.dump(params, f, -1)
+    acc = float(correct_num) / len(x_test)
+    acc_list.append(acc)
+    print('val acc %.3f%%' % (acc * 100))
+
+model.save_params()
+
+# グラフの描画
+x = np.arange(len(acc_list))
+plt.plot(x, acc_list, marker='o')
+plt.xlabel('epoch')
+plt.ylabel('accuracy')
+plt.ylim(-0.05, 1.05)
+plt.show()

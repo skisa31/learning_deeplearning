@@ -1,10 +1,12 @@
+from better_rnnlm import BetterRnnlm
+from dataset import ptb
+from common.util import eval_perplexity, to_gpu
+from common.trainer import RnnlmTrainer
+from common.optimizer import SGD
+from common import config
 import sys
 sys.path.append('.')
-from common.optimizer import SGD
-from common.trainer import RnnlmTrainer
-from common.util import eval_perplexity
-from dataset import ptb
-from better_rnnlm import BetterRnnlm
+config.GPU = True
 
 # ハイパーパラメータの設定
 batch_size = 20
@@ -20,6 +22,12 @@ dropout = 0.5
 corpus, word_to_id, id_to_word = ptb.load_data('train')
 corpus_val, _, _ = ptb.load_data('val')
 corpus_test, _, _ = ptb.load_data('test')
+
+if config.GPU:
+    corpus = to_gpu(corpus)
+    corpus_val = to_gpu(corpus_val)
+    corpus_test = to_gpu(corpus_test)
+
 vocab_size = len(word_to_id)
 xs = corpus[:-1]
 ts = corpus[1:]
@@ -31,21 +39,22 @@ trainer = RnnlmTrainer(model, optimizer)
 
 best_ppl = float('inf')
 for epoch in range(max_epoch):
-  trainer.fit(xs, ts, max_epoch=1, batch_size=batch_size, time_size=time_size, max_grad=max_grad)
+    trainer.fit(xs, ts, max_epoch=1, batch_size=batch_size,
+                time_size=time_size, max_grad=max_grad)
 
-  model.reset_state()
-  ppl = eval_perplexity(model, corpus_val)
-  print('valid perplexity: ', ppl)
+    model.reset_state()
+    ppl = eval_perplexity(model, corpus_val)
+    print('valid perplexity: ', ppl)
 
-  if best_ppl > ppl:
-    best_ppl = ppl
-    model.save_params()
-  else:
-    lr /= 4.0
-    optimizer.lr = lr
+    if best_ppl > ppl:
+        best_ppl = ppl
+        model.save_params()
+    else:
+        lr /= 4.0
+        optimizer.lr = lr
 
-  model.reset_state()
-  print('-' * 50)
+    model.reset_state()
+    print('-' * 50)
 
 # テストデータで評価
 model.reset_state()
